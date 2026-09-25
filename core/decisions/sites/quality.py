@@ -9,7 +9,7 @@
 * ``slop-score`` — the human-writing Slop Score of changed prose: five
   1-10 scores and their total (read; the ADR's "minor"). No heuristic in
   code: the baseline is None (no score). Confidence is read as the mass
-  of a level window, not one cell (see :func:`slop_dimension`).
+  of a level window, not one cell (:func:`core.decisions.site.window_confidence`).
 
 Both states are ``state_class="diff"``: without the operator's redaction
 list they never leave the machine (``privacy.DEGRADABLE`` excludes diff),
@@ -20,7 +20,6 @@ state only for a file whose suffix is in ``DIFF_SOURCE_SUFFIXES``.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import Any
 
@@ -30,6 +29,8 @@ from core.decisions.site import (
     Site,
     choice_confidence,
     interpret_choice,
+    score_level,
+    window_confidence,
 )
 
 MAX_DIFF_CHARS = 24_000
@@ -37,9 +38,6 @@ MAX_PROSE_CHARS = 12_000
 QUALITY_TIMEOUT_MS = 5000
 SLOP_LEVELS = 10
 SLOP_PASS_TOTAL = 35  # human-writing: "below 35/50, revise before delivering"
-# Levels either side of the rounded level whose probability counts as
-# agreement: ±1 of a 10-level rubric (so 3 cells, 2 at an edge).
-SLOP_WINDOW = 1
 _TRUNCATED = "\n[truncated]"
 
 VERDICTS: dict[str, str] = {
@@ -232,46 +230,18 @@ def _slop_questions() -> dict[str, Question]:
 
 
 def slop_level(score: object) -> int | None:
-    """The 0-based level of a continuous score: half-up rounding into 0..9.
-
-    Jev answers a score question with a fractional level (1.58 = between
-    2/10 and 3/10). Scores within half a level of the scale round into it
-    (-0.3 → 0, 9.4 → 9); anything further out is malformed → None.
-    """
-    if isinstance(score, bool) or not isinstance(score, int | float):
-        return None
-    if not math.isfinite(score) or not -0.5 <= score < SLOP_LEVELS - 0.5:
-        return None
-    return math.floor(score + 0.5)
-
-
-def window_mass(probs: Mapping[str, float] | Sequence[float] | None, level: int) -> float | None:
-    """Probability of the levels within :data:`SLOP_WINDOW` of ``level``; None without probs."""
-    cells = range(max(0, level - SLOP_WINDOW), min(SLOP_LEVELS, level + SLOP_WINDOW + 1))
-    if isinstance(probs, Mapping):
-        return math.fsum(float(probs.get(str(i), 0.0)) for i in cells)
-    if isinstance(probs, Sequence) and not isinstance(probs, str):
-        return math.fsum(float(probs[i]) for i in cells if i < len(probs))
-    return None
+    """The 0-based level of a continuous score (:func:`~core.decisions.site.score_level`)."""
+    return score_level(score, SLOP_LEVELS)
 
 
 def slop_dimension(answer: Answer | None) -> tuple[int, float] | None:
     """``(score 1..10, confidence)`` of one dimension, or None.
 
-    Confidence is the probability mass within ±1 level of the rounded
-    level, NOT the single most likely cell: a 10-level rubric spreads soft
-    prose over neighbouring levels ({'0': 0.28, '1': 0.27, '2': 0.24, …}),
-    and "the answer is 2/10 give or take one" is what the score claims.
-    Without ``probabilities`` the answer's own ``confidence`` stands in.
+    Confidence is the ±1-level window mass (:func:`~core.decisions.site.
+    window_confidence`), not the single most likely cell.
     """
-    if answer is None:
-        return None
-    level = slop_level(answer.score)
-    if level is None:
-        return None
-    mass = window_mass(answer.probabilities, level)
-    confidence = answer.confidence if mass is None else mass
-    return None if confidence is None else (level + 1, confidence)
+    read = window_confidence(answer, SLOP_LEVELS)
+    return None if read is None else (read[0] + 1, read[1])
 
 
 def _slop_interpret(answers: dict[str, Answer], threshold: float) -> dict[str, int] | None:

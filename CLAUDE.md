@@ -217,9 +217,9 @@ Agent YAML files: `departments/*/agents/*.yaml`
 `core/decisions/` is a System 1 layer under the agents: sites ask Jev
 (`typesafe/jev-1.13` via the OpenRouter Decisions endpoint) typed
 questions — yes/no, choice, score — instead of regex heuristics.
-Cognition sites follow in PR4. Jev generates no text; it is not a
-Model Fabric role and never an `LLMProvider`. ADR:
-`docs/adr/2026-09-23-jev-decisions-layer.md`.
+17 sites are registered; the cognition sites (18–21, PR4) are parked.
+Jev generates no text; it is not a Model Fabric role and never an
+`LLMProvider`. ADR: `docs/adr/2026-09-23-jev-decisions-layer.md`.
 
 | Mode | Behaviour |
 |---|---|
@@ -230,21 +230,21 @@ Model Fabric role and never an `LLMProvider`. ADR:
 | Site | Where | Default mode |
 |---|---|---|
 | topic-drift | UserPromptSubmit `decisions` stage | act |
-| refine | UserPromptSubmit `decisions` stage | shadow (replay: Jev 60.6 % vs heuristic 90.9 %) |
+| refine | UserPromptSubmit `decisions` stage | shadow (replay: run 1 66.0 % / run 2 65.0 % vs heuristic 60.8 % on the relabelled corpus; run 2 below +5 pp, so not both runs passed) |
 | creation-intent | UserPromptSubmit `decisions` stage (escalate-only) | act |
-| route | UserPromptSubmit → Synapse L1 `route_hint` | act |
+| route | UserPromptSubmit → Synapse L1 `route_hint` (site threshold 0.70, spec D3) | act |
 | dispatch-role | UserPromptSubmit → `[arka:dispatch-role]` (never quality → economy) | act |
 | subagent-discipline | UserPromptSubmit → `[arka:subagent-discipline]` (QG exempt) | act |
 | skill-hints | UserPromptSubmit → Synapse L5 `skill_hint` | act |
 | bash-effect | PreToolUse `flow_enforcer`, Python path only (escalate-only, 1000 ms) | act |
-| forge-departments | Forge step 3 (`ForgeBudget`, 3 s per call, 5 s total) | shadow (replay at 3 s: abstain 29.4 %; `act` only by operator override) |
-| forge-complexity | Forge step 3 (`ForgeBudget`) | shadow (replay: Jev answered 3 of 32, abstain 90.6 %; `act` only by operator override) |
+| forge-departments | Forge step 3 (`ForgeBudget`, 3 s per call, 5 s total) | act (replay jev-pr5-final: 60.7 / 63.3 % vs 17.9 / 16.7 %, abstain 17.6 / 11.8 %) |
+| forge-complexity | Forge step 3 (`ForgeBudget`) | shadow (replay: abstain 69.6 / 67.7 % after the ±1 window; answered 90.9–93.5 % vs 16–18 %) |
 | sycophancy | Stop hook, one call with the other Stop sites (`StopBudget`, 1200 ms; escalate-only) | act |
 | phantom-action | Stop hook, only with 0 tool calls on record (escalate-only) | act |
 | skill-proposer | Stop hook → `skill_proposer.evaluate(repeatable=)` | act |
 | learning-signal | Stop hook, every turn → `[arka:learned-rule]` (never writes memory) | act |
 | ui-in-ts | PreToolUse frontend gate, `.ts`/`.js`/`.mjs`/`.cjs` files the regex calls non-UI (600 ms; escalate-only, WARN-only; `diff` class, so no redaction list means no call; allowlisted source/prose suffixes only, `egress-denied:path-class` otherwise) | act |
-| qg-prescreen | QG step 2.5 CLI `core.governance.qg_prescreen` (advisory; never touches the reviewer list; diff class: allowlisted source/prose suffixes only, `egress-denied:path-class` otherwise) | shadow (replay: abstain above 25 % on five of six runs, 43.8 / 34.4 / 31.6 / 30.4 / 28.3 %; `act` only by operator override) |
+| qg-prescreen | QG step 2.5 CLI `core.governance.qg_prescreen` (advisory; never touches the reviewer list; diff class: allowlisted source/prose suffixes only, `egress-denied:path-class` otherwise) | shadow (replay: abstain 32.6 / 30.4 %) |
 | slop-score | `evidence_checks` section `slop-score` (advisory-only, minor) | act |
 
 - Unavailability falls back to the site's heuristic (a no-op where none
@@ -252,8 +252,16 @@ Model Fabric role and never an `LLMProvider`. ADR:
 - Gating sites (creation-intent, bash-effect, dispatch-role, sycophancy, phantom-action, ui-in-ts) are **escalate-only**: Jev may tighten, never loosen. skill-proposer and learning-signal are advisory (`any`).
 - Never inside a Synapse layer; never replaces subagents or QG reviewers.
 - Payloads pass `core/egress/policy.evaluate()` first; denial = fallback.
-- Telemetry: `~/.arkaos/telemetry/decisions.jsonl`, `/arka decisions`,
-  cost as `record_cost(category="decision")`.
+- Seed policy: the seed writes only `enabled`/`transport`/`redactClients`;
+  site modes come from `Site.default_mode`, and a `sites` entry in
+  `~/.arkaos/config.json` is an operator override.
+- Telemetry: `~/.arkaos/telemetry/decisions.jsonl`,
+  `/arka decisions [period] [--by-site]`, cost as
+  `record_cost(category="decision")` (replay runs: `decision-replay`).
+- Replay report: `arka-py -m core.decisions.replay_report --all --session <id>`
+  (2 runs, cache off; a run under 90 % reach is `not-measured`).
+- Promotion rule (`core/decisions/promotion.py`, proposals only):
+  `shadow → act` on 2 passing runs, `act → shadow` on 2 fails in 3.
 - Prerequisite: `OPENROUTER_API_KEY` (`npx arkaos keys set`). No key = off.
 
 ## Core Systems

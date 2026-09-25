@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -11,9 +13,14 @@ from unittest.mock import patch
 import pytest
 from _decisions_helpers import fake_ok, isolate_decisions
 
+from core.decisions import client, privacy
 from core.decisions import replay as rp
+from core.decisions.client import DecisionUnavailable
 from core.decisions.config import DecisionsConfig
+from core.decisions.engine import run_sync
+from core.decisions.registry import SITES as SITES_BY_NAME
 from core.decisions.replay import ReplayCase, load_corpus, main, replay
+from core.decisions.site import SiteCall
 from core.decisions.transport import resolve_transport
 
 URLOPEN = "core.decisions.client.urllib.request.urlopen"
@@ -627,3 +634,71 @@ def test_pr3_case_states():
     prose = ReplayCase(id="e", lang="pt", prompt="Olá.", expected=[5, 5, 5, 5, 5])
     assert rp.case_state("slop-score", prose) == {"path": "e.md", "prose": "Olá."}
     assert rp.HEURISTICS["slop-score"](prose) is None
+
+
+# --- reached_endpoint: what the endpoint decided vs what this machine decided --
+
+
+@pytest.mark.parametrize(("reason", "reached"), [
+    ("ok", True),
+    ("timeout", True),  # a socket timeout raised by the exchange with the endpoint
+    ("network", True),
+    ("http-529", True),
+    ("invalid-shape", True),  # a malformed RESPONSE body: the endpoint answered
+    ("invalid-json", True),
+    ("timeout:local", False),  # our wall-clock deadline (client._send_by_deadline)
+    ("invalid-shape:local", False),  # a state/body that never serialised
+    ("cache-hit", False),
+    ("no-questions", False),
+    ("deadline", False),
+    ("backoff:http-401", False),
+    ("egress-denied:path-class", False),
+])
+def test_reached_endpoint_names_the_local_reasons(reason: str, reached: bool):
+    assert rp.reached_endpoint(reason) is reached
+
+
+def test_the_wall_clock_deadline_is_decided_locally(monkeypatch):
+    release = threading.Event()
+    monkeypatch.setattr(client, "_send", lambda _req, _t: release.wait(2) or b"")
+    request = urllib.request.Request("https://example.invalid", data=b"{}", method="POST")
+    try:
+        with pytest.raises(DecisionUnavailable) as info:
+            client._send_by_deadline(request, 0.05)
+    finally:
+        release.set()
+    assert info.value.reason == "timeout" and info.value.run_reason() == "timeout:local"
+
+
+def test_an_unserialisable_state_is_decided_locally():
+    state: dict[str, Any] = {}
+    state["self"] = state  # json.dumps: ValueError (circular reference)
+    with pytest.raises(DecisionUnavailable) as info:
+        privacy._serialise(state)
+    assert info.value.reason == "invalid-shape"
+    assert info.value.run_reason() == "invalid-shape:local"
+
+
+def test_live_runs_keep_the_bare_reason_vocabulary(transport):
+    """``:local`` is replay-only: live telemetry still reads ``timeout``."""
+    error = DecisionUnavailable("timeout", "deadline", local=True)
+    call = SiteCall(SITES_BY_NAME["creation-intent"], False)
+    with patch("core.decisions.engine._fetch", side_effect=error):
+        live = run_sync([call], "p", transport=transport, cfg=DecisionsConfig(), timeout_s=1)
+        marked = run_sync([call], "p", transport=transport, cfg=DecisionsConfig(),
+                          timeout_s=1, mark_local=True)
+    assert (live[1], marked[1]) == ("timeout", "timeout:local")
+
+
+@pytest.mark.parametrize(("error", "reached"), [
+    (DecisionUnavailable("timeout", "deadline", local=True), 0),
+    (DecisionUnavailable("invalid-shape", "state not serialisable", local=True), 0),
+    (DecisionUnavailable("timeout"), 2),  # the endpoint's side: counted as reached
+])
+def test_local_failures_never_count_as_reached(transport, error, reached):
+    # engine._fetch is where post_decision/privacy raise; patched, nothing
+    # reaches the breaker, so every case takes the path under test.
+    cases = load_corpus("creation-intent")[:2]
+    with patch("core.decisions.engine._fetch", side_effect=error):
+        report = replay("creation-intent", cases, transport=transport)
+    assert report.asked == 2 and report.reached == reached

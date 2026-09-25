@@ -32,8 +32,9 @@ class Clock:
 
 @pytest.fixture
 def jev(monkeypatch, tmp_path):
-    # Both Forge sites ship in shadow (replay gate 2026-09-23); these tests
-    # exercise the act path, so they opt in exactly as an operator would.
+    # forge-departments ships in act (replay jev-pr5-final), forge-complexity
+    # in shadow; these tests exercise both act paths, so they pin both
+    # explicitly, exactly as an operator would.
     from _decisions_helpers import write_config
 
     home = isolate_decisions(monkeypatch, tmp_path)
@@ -182,10 +183,31 @@ def test_step3_without_a_key_is_the_heuristic(monkeypatch, tmp_path):
     assert orch._complexity == expected
 
 
-def test_shipped_default_is_shadow_and_keeps_the_estimate(monkeypatch, tmp_path):
-    """No operator override: both sites are shadow, the keyword estimate
-    acts, and no synchronous call leaves (the shadow worker is detached)."""
+def test_shipped_default_departments_act_complexity_shadow(monkeypatch, tmp_path):
+    """No operator override: forge-departments acts (Jev's set replaces the
+    keyword estimate) and forge-complexity stays shadow (heuristic
+    dimensions, detached worker, no synchronous call)."""
     isolate_decisions(monkeypatch, tmp_path)
+    answer = _depts({"marketing": 0.3, "landing": 0.25, "dev": 0.22,
+                     "content": 0.21, "brand": 0.02})
+    with patch(URLOPEN, return_value=fake_ok(answer)) as net:
+        out = jev_sites.decide_departments(PROMPT, [], ["ops"], ForgeBudget())
+    assert net.call_count == 1
+    assert out == ["marketing", "landing", "dev", "content"]
+    with patch(URLOPEN) as net, patch("core.decisions.shadow.subprocess.Popen") as pop:
+        dims = jev_sites.decide_dimensions(PROMPT, [], ["dev"], ([], []), ForgeBudget())
+    net.assert_not_called()
+    assert pop.call_count == 1
+    assert dims == score_dimensions(PROMPT, [], ["dev"], [], [])
+
+
+def test_departments_shadow_override_keeps_the_estimate(monkeypatch, tmp_path):
+    """Operator override back to shadow: the keyword estimate acts and no
+    synchronous call leaves (the shadow worker is detached)."""
+    from _decisions_helpers import write_config
+
+    home = isolate_decisions(monkeypatch, tmp_path)
+    write_config(home, {"sites": {"forge-departments": "shadow"}})
     with patch(URLOPEN) as net, patch("core.decisions.shadow.subprocess.Popen") as pop:
         out = jev_sites.decide_departments(PROMPT, [], ["dev"], ForgeBudget())
     assert out == ["dev"]

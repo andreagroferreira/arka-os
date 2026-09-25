@@ -140,7 +140,7 @@ def _serialise(state: State) -> str:
     try:
         return json.dumps(state, ensure_ascii=False, sort_keys=True, default=str)
     except (TypeError, ValueError) as exc:
-        raise DecisionUnavailable("invalid-shape", "state not serialisable") from exc
+        raise DecisionUnavailable("invalid-shape", "state not serialisable", local=True) from exc
 
 
 def _normalise_home(text: str) -> str:

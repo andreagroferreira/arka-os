@@ -203,3 +203,18 @@ def test_live_drift_flag(calls, pct, period, drift):
     view = rr.live_view(_live(calls, pct), period)
     assert view is not None and view.live_drift is drift
     assert rr.live_view(None, "week") is None
+
+
+def test_secondary_scores_render_both_d6_readings_and_the_gap_choice():
+    from types import SimpleNamespace
+
+    forge = _report(site="forge-complexity", abstain_rate=0.1, single_cell_abstain_rate=0.9)
+    refine = _report(site="refine", abstain_rate=0.2, gap_accuracy=0.75)
+    plain = _report()
+    results = [SimpleNamespace(site=r.site, runs=[rr.SiteRun(1, "pass", "", r, "t")])
+               for r in (forge, refine, plain)]
+    lines = rr._secondary_lines(results)  # type: ignore[arg-type]
+    assert "| `forge-complexity` | 1 | 10.0% | 90.0% | — |" in lines
+    assert "| `refine` | 1 | 20.0% | — | 75.0% |" in lines
+    assert not [line for line in lines if "`route`" in line]
+    assert rr._secondary_lines(results[2:]) == []  # type: ignore[arg-type]

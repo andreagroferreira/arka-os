@@ -209,11 +209,15 @@ def run_sync(
     timeout_s: float,
     session_id: str = "",
     cost_category: str = COST_CATEGORY,
+    mark_local: bool = False,
 ) -> RunResult:
     """backoff → privacy → cache → POST → cache.put. ``(response|None, reason, ms)``.
 
     ``cost_category`` labels the ledger row of a fresh call (the replay
-    harness passes ``decision-replay``).
+    harness passes ``decision-replay``). ``mark_local`` (replay only)
+    reports a failure decided on this machine as ``<reason>:local``
+    (:meth:`DecisionUnavailable.run_reason`); live telemetry keeps the
+    bare reason vocabulary.
     """
     cause = blocked()
     if cause is not None:
@@ -224,7 +228,8 @@ def run_sync(
     try:
         return _fetch(calls, state, transport, cfg, timeout_s, session_id, cost_category)
     except DecisionUnavailable as exc:
-        return None, exc.reason, int((time.monotonic() - start) * 1000)
+        reason = exc.run_reason() if mark_local else exc.reason
+        return None, reason, int((time.monotonic() - start) * 1000)
 
 
 def _fetch(

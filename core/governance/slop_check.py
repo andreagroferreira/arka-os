@@ -72,15 +72,29 @@ def prose_text(project_dir: Path, base: str | None, name: str) -> tuple[str, str
     config file, a hard link, a directory) is read neither way:
     ``("", "path-class")``; so is a tracked name whose diff covers any
     file but exactly that one (finding 52). git reads the name literally.
+    The whole file is read only when git answered "untracked" (exit 1)
+    for a name already in its own spelling: ``x.md/`` resolves to the
+    tracked ``x.md`` while git calls it untracked, and a git that gave no
+    answer (129 without ``--literal-pathspecs``) is not "untracked" (#573).
     """
+    if PurePosixPath(name).as_posix() != name:
+        return "", PATH_CLASS
     if not jev_advisory.resolved_path_allowed(project_dir, name):  # finding 51
         return "", PATH_CLASS
-    if base is not None and _git_tracks(project_dir, name):
+    tracked = _git_tracks(project_dir, name) if base is not None else False
+    if tracked is None:
+        return "", PATH_CLASS
+    if tracked and base is not None:
         added = _added_lines(project_dir, base, name)
         if added and not literal_git.names_exactly(project_dir, base, name, GIT_TIMEOUT_S):
             return "", PATH_CLASS
         if added is not None:
             return "\n".join(text for _, text in added), "added lines"
+    return _whole_file(project_dir, name)
+
+
+def _whole_file(project_dir: Path, name: str) -> tuple[str, str]:
+    """The whole text of ``name`` inside the project, with its scope."""
     path = jev_advisory.readable_inside(project_dir, name)
     if path is None:  # outside the project, a symlink out, or .git (finding 36)
         return "", "outside the project"

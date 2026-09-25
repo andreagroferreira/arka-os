@@ -12,7 +12,12 @@ Safety contract:
   - 300s cap per check; on expiry the process is killed and the check
     FAILS: ``ran=True, passed=False, summary="timed out after N s"``. A
     check that never finished concluded nothing, and an inconclusive row
-    let another check's pass carry ``overall`` (issue #570)
+    let another check's pass carry ``overall`` (issue #570). One
+    exception: ``design-slop`` (minor severity, its own
+    ``DESIGN_SLOP_TIMEOUT`` cap) reports a timeout as inconclusive,
+    ``ran=True, passed=None, summary="timeout"``. The project-wide mypy
+    run behind the typecheck row is an advisory note, not a row: its
+    timeout only says "did not finish" in that note
   - nothing that mutates: no installs, no git, no writes to the project
 
 CLI (for hooks/skills)::
@@ -906,14 +911,29 @@ _MYPY_ERROR_RE = re.compile(
 )
 
 
-def _git_tracks(project_dir: Path, name: str) -> bool:
-    """True when git has ``name`` in the index (``name`` read literally, finding 52)."""
+# ``git ls-files --error-unmatch`` exits 1 for a name it does not track;
+# any other code (129: a git without ``--literal-pathspecs``) is no answer.
+_UNTRACKED_EXIT = 1
+
+
+def _git_tracks(project_dir: Path, name: str) -> bool | None:
+    """Whether git has ``name`` in the index; None when git gave no answer.
+
+    True on exit 0, False ONLY on exit 1 (the name is untracked), None
+    on any other exit, a timeout or a failed spawn (#573). None is falsy,
+    so the scoping callers (security-grep, typecheck and spellcheck
+    attribution) keep failing closed on it; ``slop_check.prose_text``
+    tells it from False, because False lets it read the whole file.
+    ``name`` is read literally (finding 52).
+    """
     try:
         proc = literal_git.run(project_dir, "ls-files", "--error-unmatch", "--", name,
                                timeout=10)
     except (OSError, subprocess.TimeoutExpired):
-        return False
-    return proc.returncode == 0
+        return None
+    if proc.returncode == 0:
+        return True
+    return False if proc.returncode == _UNTRACKED_EXIT else None
 
 
 def _added_line_numbers(

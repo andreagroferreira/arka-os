@@ -72,6 +72,40 @@ def test_every_site_is_replayable_and_never_seeded():
         assert rp.default_corpus_path(name).is_file(), name
 
 
+SITE_TABLE_HEADER = "| Site | Where | Default mode |"
+
+
+def claude_md_site_modes(text: str) -> dict[str, str]:
+    """``{site: default mode}`` from CLAUDE.md's ``## Typed Decisions (Jev)`` table.
+
+    The mode is the first word of the third cell, before any parenthesis;
+    a site listed twice or a row without three cells fails loudly.
+    """
+    section = text.split("## Typed Decisions (Jev)", 1)[1]
+    lines = section.split(SITE_TABLE_HEADER, 1)[1].splitlines()[2:]  # skip |---|
+    modes: dict[str, str] = {}
+    for line in lines:
+        if not line.startswith("|"):
+            break
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        assert len(cells) == 3, f"table row without 3 cells: {line!r}"
+        mode = re.match(r"[a-z]+", cells[2])
+        assert mode is not None and cells[0] not in modes, line
+        modes[cells[0]] = mode.group(0)
+    return modes
+
+
+def test_claude_md_site_table_matches_the_registry():
+    """Spec PR5 D4: the documented default mode is ``Site.default_mode``, for
+    exactly the registered sites (none missing, none extra)."""
+    table = claude_md_site_modes((repo_root() / "CLAUDE.md").read_text(encoding="utf-8"))
+    assert set(table) == set(SITES), (
+        f"missing {sorted(set(SITES) - set(table))}, extra {sorted(set(table) - set(SITES))}")
+    drift = {n: (table[n], s.default_mode) for n, s in SITES.items()
+             if table[n] != s.default_mode}
+    assert drift == {}, f"CLAUDE.md vs registry (doc, code): {drift}"
+
+
 def test_seed_row_detector_catches_a_seeded_site():
     """The mutant that adds a site row back must fail the test above."""
     mutant = '// decisions.sites.* are not seeded\n  [["decisions", "sites", "route"], "act"],'

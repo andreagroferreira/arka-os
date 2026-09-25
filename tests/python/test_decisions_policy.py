@@ -68,14 +68,28 @@ def test_answer_confidence_for_noul_is_distance_from_coin_flip():
 
 
 def test_write_threshold_is_load_bearing(monkeypatch):
-    call = SiteCall(ROUTE, "dev")
+    # A route without its own floor (spec PR5 D3) reads the write table.
+    table_route = dataclasses.replace(ROUTE, min_confidence=None)
+    call = SiteCall(table_route, "dev")
     response = _route_response(0.72)
     cfg = DecisionsConfig()
-    before = resolve(call, response, "act", threshold_for(cfg, ROUTE))
+    before = resolve(call, response, "act", threshold_for(cfg, table_route))
     assert (before.value, before.acted_on, before.reason) == ("dev", "heuristic", "abstain")
     monkeypatch.setitem(cfgmod.THRESHOLDS, "write", 0.70)
-    after = resolve(call, response, "act", threshold_for(cfg, ROUTE))
+    after = resolve(call, response, "act", threshold_for(cfg, table_route))
     assert (after.value, after.acted_on, after.reason) == ("marketing", "jev", "jev")
+
+
+def test_route_site_floor_is_load_bearing():
+    """Spec PR5 D3: a 0.72 answer acts on the shipped route and abstains on the table."""
+    response = _route_response(0.72)
+    cfg = DecisionsConfig()
+    shipped = resolve(SiteCall(ROUTE, "dev"), response, "act", threshold_for(cfg, ROUTE))
+    assert (shipped.value, shipped.acted_on, shipped.reason) == ("marketing", "jev", "jev")
+    table_route = dataclasses.replace(ROUTE, min_confidence=None)
+    call = SiteCall(table_route, "dev")
+    table = resolve(call, response, "act", threshold_for(cfg, table_route))
+    assert (table.value, table.acted_on, table.reason) == ("dev", "heuristic", "abstain")
 
 
 def test_escalate_only_is_load_bearing():

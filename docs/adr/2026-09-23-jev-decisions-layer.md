@@ -3,7 +3,8 @@
 - **Status:** accepted
 - **Date:** 2026-09-23
 - **Deciders:** operator (campaign GO 2026-09-23), dev squad (Paulo, Gabriel)
-- **Campaign:** JEV Decisions Layer, PR1 of 5 (`feature/jev-decisions-<n>`)
+- **Campaign:** JEV Decisions Layer, PR1 of 5 (`feature/jev-decisions-<n>`);
+  PR4 parked, PR5 consolidation below
 - **Related:** `docs/adr/2026-07-31-egress-policy.md` (every payload passes
   it), `docs/adr/2026-07-04-evidence-flow.md` (replay reports are G3
   evidence), `.claude/rules/bash-hooks.md` (bounded network rule)
@@ -170,13 +171,19 @@ never raises; `model` is `decisions.model` from `models.yaml`
 
 ### Modes and thresholds
 
-Per-site modes in `~/.arkaos/config.json` (seeded by the installer, never
-overwriting an operator value): `act` (default: bounded synchronous call,
+Per-site modes: `Site.default_mode`, overridden by the operator in
+`~/.arkaos/config.json` (since PR5 the installer seeds no site mode, PR5
+Decision 3): `act` (default: bounded synchronous call,
 Jev drives the site), `shadow` (detached worker, heuristic drives,
 agreement logged, zero hook latency), `off`. Global kill-switch
 `ARKA_BYPASS_DECISIONS=1`; no `OPENROUTER_API_KEY` means the stage is not
 registered and output is byte-identical to today. Default confidence
 thresholds by risk: read 0.60, write 0.75, destructive 0.90.
+`threshold_for` applies, in order: the operator's
+`sites.<name>.minConfidence`, then `Site.min_confidence`, then
+`thresholds[risk]` from config, then this table. Raising
+`thresholds.write` leaves route at 0.70; only
+`sites.route.minConfidence` moves it.
 
 ### The 22 sites
 
@@ -185,7 +192,7 @@ thresholds by risk: read 0.60, write 0.75, destructive 0.90.
 | 1 | topic-drift | `core/hooks/user_prompt_submit.py` | keyword overlap < 30 % | noul | read | 1 |
 | 2 | refine (vague request) | `core/forge/complexity.py`, UPS | additive score ≥ 85 + carve-out | noul + choice {target, scope, acceptance, none} | read | 1 |
 | 3 | creation-intent | UPS | bilingual regex, unbudgeted | noul | write, escalate-only | 1 |
-| 4 | route (L1) | `core/synapse/layers.py` | regex counts, tie by dict order | choice: 16 departments + none | write (0.70) | 1 |
+| 4 | route (L1) | `core/synapse/layers.py` | regex counts, tie by dict order | choice: 16 departments + none | write, site threshold 0.70 (spec D3; PR5) | 1 |
 | 5 | bash-effect | `core/workflow/flow_enforcer.py` | regex blacklist + whitelist | noul `requires_gating` (one question; PR2) | destructive, escalate-only | 2 |
 | 6 | forge-departments | `core/forge/orchestrator.py` | 5 keywords | choice; the set of departments with p ≥ 0.20, cap 4; no keyword union | read | 2 |
 | 7 | forge-complexity | `core/forge/complexity.py` | fixed weights over regex | 5× score (10 levels → 0–100) | read | 2 |
@@ -221,8 +228,8 @@ disk, when its Jev precision on the cases it answers is below the
 heuristic's precision on the same cases + 5 pp, when its abstain rate
 exceeds 25 %, or (escalate-only sites) when false escalations exceed 5 %
 of the cases the heuristic already got right. The decision is never made
-by opinion. PR5 reruns the replay across all 22 sites and applies the
-demotions.
+by opinion. PR5 reruns the replay across the 17 registered sites and
+applies the demotions (PR5 Decisions 1 and 2).
 
 PR1 replay (online, 2026-09-23). Precision on the cases Jev answered,
 Jev vs the heuristic on the same cases:
@@ -265,8 +272,8 @@ commands while a budget is active or the fast-path is off), under a
 1000 ms ceiling the hook enforces itself (an operator `timeoutMs` cannot
 raise it). Every Bash line `flow_enforcer` writes to
 `~/.arkaos/telemetry/enforcement.jsonl` carries `bash_path: "python"`;
-the Node fast-path renders the manifest template, where it stays `""`.
-PR5 decides the shim's delegation on those two counts, not on opinion.
+the Node fast-path lines carry no `bash_path` key (corrected in PR5).
+PR5 decided the shim's delegation on those two counts (PR5 Decision 11).
 
 **Skill-hints menu.** Jev never sees the 308 commands (the endpoint
 caps a choice at 255 options). `core/synapse/command_menu.skill_hint_candidates`
@@ -453,7 +460,8 @@ own. The registry now holds 17 sites. Of the seven new ones, six are
 `act` by default; qg-prescreen is `shadow`, demoted by the replay gate
 below. The site
 declarations (`default_mode`) and the seed (`installer/config-seed.js`)
-say the same.
+said the same until PR5 took the site modes out of the seed (PR5
+Decision 3).
 
 | Site | Call site | Heuristic | Output | Ceiling | State class | Direction |
 |---|---|---|---|---|---|---|
@@ -1229,6 +1237,333 @@ the second proved by mutation (it fails with the old read).
   refused the reviewer for good. The carry advisor lists a reviewer
   whose latest capture has no fence or a broken fence for re-dispatch
   rather than carrying an older digest.
+
+## PR5 — Consolidação (2026-09-25)
+
+Spec: the PR5 note of 2026-09-25 in the vault (`Projects/ArkaOS/Specs/`,
+"PR5 Consolidação e Release 5.18.0"), operator GO 2026-09-25 "as
+specified, with relabel". PR5 adds no site. It measures the 17
+registered sites, writes the rule that moves their modes, removes the
+site modes from the installer seed, makes the cost of the layer
+visible, relabels the corpora that favoured their heuristic and closes
+three carries. Decision numbers follow the spec's D1–D11; D8 (the KB
+note) and D10 (rollout through `npx arkaos@latest update`) carry no
+architecture and stay in the spec.
+
+**Decision 1 — a replay report over `replay()`.**
+`core/decisions/replay_report.py` runs N measured runs per site and
+writes one evidence folder:
+
+    arka-py -m core.decisions.replay_report (--all | --sites a,b) \
+        --session <id> [--runs 2] [--live-window 7d]
+
+- Each run calls `replay()` at the site's real ceiling
+  (`site_timeout_ms`; there is no `--timeout-ms`) on a copy of the
+  config with `cacheTtlSeconds=0`. `cache.get` misses when the TTL is
+  0 or less, so run 2 asks the endpoint again. Without it, a second run
+  inside 24 h read run 1's answers from the cache, and "passed twice"
+  was one answer read twice.
+- A run is measured only when at least 90 % of the cases that asked a
+  question reached the endpoint and at most 10 % of all cases were
+  unavailable (`MIN_REACHED_SHARE`, `MAX_UNAVAILABLE_SHARE`). Any other
+  run is `not-measured`: it moves no mode and the CLI exits 1. This is
+  PR2's rule, "a demotion needs a run that measured the site", now in
+  code instead of narrative.
+- Output under `~/.arkaos/quality-gate/<session>/replay-final/`:
+  `<site>-run<k>.json`, `REPORT.md`, `SUMMARY.json` (per site: gates,
+  proposal, sha256 of the corpus) and `PROPOSALS.json`. Exit 0 when
+  every site was measured, 1 when a run was not, 2 on usage, bypass, no
+  transport or a bad corpus.
+- Replay calls land in the ledger as `decision-replay`, never as
+  production `decision` (Decision 5).
+- The `live` column reads `decisions.jsonl` over `--live-window` and is
+  informational. It never decides a mode: the gate is decided on
+  labelled cases only ("Gate shadow → act", never by opinion). A window
+  of 7 days or more with at least 50 calls and an attributable abstain
+  above 25 % sets `live-drift`, which asks for a new run and a corpus
+  review, not a mode change.
+
+Results, session `jev-pr5-final` (2026-09-25T09:16Z): 17 sites, 2
+measured runs each, cache off, ceiling = each site's `timeout_ms`,
+$0.050675 under `decision-replay`. Each cell reads run 1 / run 2;
+"Jev vs heur." is accuracy on the answered cases.
+
+| Site | Mode | Jev vs heur. (answered) | Abstain | Gate |
+|---|---|---|---|---|
+| topic-drift | act | 100.0 / 100.0 vs 64.7 / 66.7 | 0.0 / 2.9 | pass |
+| refine | shadow | 66.0 / 65.0 vs 60.8 / 60.8 | 6.7 / 6.7 | pass / fail |
+| creation-intent | act | 97.5 / 97.5 vs 80.0 / 80.0 | 14.9 / 14.9 | pass |
+| route | act | 90.9 / 90.9 vs 72.7 / 72.7 | 0.0 / 0.0 | pass |
+| bash-effect | act | 100.0 / 100.0 vs 50.0 / 50.0 | 15.8 / 15.8 | pass |
+| forge-departments | shadow | 60.7 / 63.3 vs 17.9 / 16.7 | 17.6 / 11.8 | pass |
+| forge-complexity | shadow | 93.5 / 90.9 vs 16.1 / 18.2 | 69.6 / 67.7 | fail |
+| dispatch-role | act | 100.0 / 100.0 vs 84.4 / 84.4 | 0.0 / 0.0 | pass |
+| subagent-discipline | act | 96.0 / 96.0 vs 88.0 / 88.0 | 21.9 / 21.9 | pass |
+| skill-hints | act | 100.0 / 100.0 vs 17.6 / 17.6 | 0.0 / 0.0 | pass |
+| sycophancy | act | 100.0 / 100.0 vs 61.3 / 62.5 | 8.8 / 5.9 | pass |
+| phantom-action | act | 100.0 / 100.0 vs 79.3 / 79.3 | 14.7 / 14.7 | pass |
+| skill-proposer | act | 100.0 / 100.0 vs 86.2 / 86.2 | 9.4 / 9.4 | pass |
+| learning-signal | act | 100.0 / 100.0 vs 80.7 / 80.7 | 11.4 / 11.4 | pass |
+| ui-in-ts | act | 100.0 / 100.0 vs 63.2 / 63.2 | 5.0 / 5.0 | pass |
+| qg-prescreen | shadow | 71.0 / 71.9 vs 0.0 / 0.0 | 32.6 / 30.4 | fail |
+| slop-score | act | 0.0 / 0.0 vs 0.0 / 0.0 | 15.2 / 21.2 | pass |
+
+All figures are percentages; "Mode" is the default at the time of the
+run. slop-score is gated on MAE (2.6786 / 2.2308), not on accuracy.
+The route row ran at the 0.75 `write` threshold, before the ruling;
+for 0.70 see "Divergences between plan, spec and code".
+
+Secondary scores, never part of the gate:
+
+- refine, Jev's `missing` choice against the labelled `gap`: 36.5 % /
+  37.5 %.
+- forge-complexity abstain under the pre-D6 single-cell read: 89.2 % /
+  88.2 %, against 69.6 % / 67.7 % under the ±1 window.
+
+Proposals (Decision 2): 16 `keep` and 1 `promote`. forge-departments
+goes shadow → act: both runs passed on the same corpus digest (60.7 /
+63.3 % against 17.9 / 16.7 %, abstain 17.6 / 11.8 %). This PR applies
+it to `Site.default_mode` in `sites/forge.py`. Three sites stay shadow:
+
+- refine: run 2 gave 65.0 % against 60.8 %, under the +5 pp margin, so
+  not both runs passed. The relabel removed the old baseline: the
+  heuristic scored 90.9 % on a corpus seeded from its own unit tests
+  and scores 60.8 % on the relabelled one.
+- forge-complexity: abstain 69.6 / 67.7 %. D6 brought it down from
+  88–89 %, still far above the limit. The cases it answers are right
+  90.9–93.5 % of the time, against 16–18 % for the heuristic.
+- qg-prescreen: abstain 32.6 / 30.4 %, above the 25 % limit.
+
+Open option, not taken in PR5: forge-complexity abstains when any one
+of its five windows is below 0.60 (`_dimensions` returns None on the
+first dimension `window_level` rejects), while slop-score compares the
+mean of its five window confidences with the threshold. Moving
+forge-complexity to the mean is a contract change; it waits for a
+decision with its own replay.
+
+Verified in code while writing this section:
+
+- `ReplayCase.source` is a string defaulting to `seed`, not the spec's
+  list, validated against `seed` and the labellers' `handwritten-*`
+  batches (`handwritten-2026-09-25-A` and `handwritten-2026-09-25-B`).
+- D6 is wired: `sites/forge.py` reads each dimension through
+  `window_level`, which calls `site.window_confidence`, which uses
+  `window_mass`. `single_cell_complexity` survives only for the
+  replay's secondary column.
+- The held-out sets under `config/decisions/corpora/heldout/` hold 17
+  (learning-signal, after dedupe: `learning-signal-B-03` repeated the
+  training case `learning-signal-17`), 20 (qg-prescreen) and 20
+  (slop-score) cases.
+
+**Decision 2 — the promotion and demotion rule.**
+`core/decisions/promotion.propose_mode(site, current, runs)` is pure: no
+IO, no config, no code edits. It returns a proposal; the PR applies an
+accepted one to `Site.default_mode` by hand, with an evidence comment
+(date, n, numbers, report path) in the form of `sites/forge.py`.
+
+- `shadow → act`: the last 2 measured runs pass on the same corpus
+  digest (`PROMOTE_RUNS = 2`). qg-prescreen also needs abstain at or
+  below 20 % in both (`PRESCREEN_MAX_ABSTAIN`): PR3 carry (c), a margin
+  and not the 25 % limit.
+- `act → shadow`: at least 2 fails among the last 3 measured runs
+  (`DEMOTE_FAILS = 2`, `DEMOTE_WINDOW = 3`). Exactly 1 fail is `watch`:
+  the site stays `act` and the report records it.
+- `off` is never proposed and never changed. A `not-measured` run counts
+  for neither side. A new corpus digest restarts the window, so a
+  relabelled corpus never inherits the runs of the old one.
+
+**Decision 3 — `Site.default_mode` is the only default.** Until PR5 the
+installer seed wrote the mode of all 17 sites. `applyScalarSeeds` fills
+empty leaves only and never rewrites one, and `site_mode` prefers the
+config over the site. The finding: after the first seed, a seeded mode
+is indistinguishable from an operator choice, so no later promotion or
+demotion would ever reach an existing install. The window to fix it
+closes with the 5.18.0 publish: the 5.17.2 seed has no `decisions`
+block and the operator's `config.json` has no `decisions` key, so there
+is nothing to migrate.
+
+- The seed writes three keys only: `decisions.enabled`,
+  `decisions.transport`, `decisions.redactClients`. `hookTimeoutMs`,
+  `cacheTtlSeconds`, `thresholds.*` and every `sites.*` row are no
+  longer seeded; their defaults live in `core/decisions/config.py` and
+  the site declarations, where a PR can change them.
+- `SiteConfig.mode` defaults to `None`, and `None` means the site's
+  `default_mode`. Before, an override that only set `timeoutMs` or
+  `minConfidence` put a `shadow` site into `act`.
+- Any `decisions.sites.<name>` entry in `~/.arkaos/config.json` is the
+  operator's: read, never rewritten. The replay report lists default
+  and effective mode per site and names an operator override, so a
+  demotion never looks applied when an override keeps it out.
+- Alternative rejected: keep the seeds with a provenance record
+  (`decisions._seeded`) and migrate the untouched values. Same result,
+  more state, a Node migration path and a provenance test, while the
+  window is still open.
+
+**Decision 4 — the registry test is inverted.**
+`test_every_site_is_replayable_and_never_seeded` still requires a corpus
+per site and now fails when a code line of
+`installer/config-seed.js` holds a `"decisions", "sites"` row.
+`tests/installer/config-seed.test.js` pins the three-key seed from the
+Node side.
+
+**Decision 5 — cost is measured, saving is not.**
+`core/decisions/cost_effect.py` feeds a "Cost and effect" section in
+`/arka decisions [period] [--by-site]` and `/arka status`.
+
+- Cost: the ledger split into production (`decision`) and replay
+  (`decision-replay`). Rows written before the new category are
+  classified at read time: a `decision` row with `session_id="replay"`
+  is a replay row. The ledger is never rewritten. On the operator's
+  ledger (2026-09-25) the `decision` rows summed $0.121669 over 2045
+  lines, and $0.059054 of it (1676 lines) was replay: about $0.059 of
+  $0.122 was evidence runs, not production.
+- No measured saving is claimable today, and the section says so. Each
+  cost site carries an effect count and, at most, a counterfactual
+  ceiling (plan numbering):
+  - #7 forge-complexity (`shadow`): how often `determine_tier` over
+    Jev's dimensions would give another tier, and in which direction.
+  - #10 dispatch-role: escalations only; escalate-only, so it never
+    saves by construction.
+  - #11 qg-prescreen: prediction accuracy against the final verdict,
+    and the reviewers' ledger cost in sessions where it predicted
+    `rejected` and the Quality Gate rejected. That dollar figure is a
+    ceiling labelled `counterfactual (ceiling)`, never added to the cost
+    and never called a saving; the prescreen removes no reviewer.
+  - #22 subagent-discipline: `isolate=no` turns against subagent
+    activations in the same session; no ledger row links a subagent to
+    the turn that suggested it.
+- `shadow` is not cheaper than `act`: it trades the hook's latency for a
+  detached call of the same cost. Attribution per turn (a turn id in
+  the ledger and in the markers) is a campaign of its own.
+
+**Decision 6 — forge-complexity reads a window, not a cell.** The site
+read each score with `interpret_score` on the single most likely level.
+PR3 fixed the same defect in slop-score with the probability mass over
+a ±1-level window. `window_mass` moves to `core/decisions/site.py` as a
+shared helper (slop-score keeps its tests unchanged) and
+forge-complexity uses it. PR2's 90.6 % abstain came at least in part
+from the single-cell read, which a relabel alone would not fix; the
+report records both interpretations on the relabelled corpus before
+any proposal.
+
+**Decision 7 — the relabel method.** Scope: refine (its corpus was
+seeded from the heuristic's own unit tests) and forge-complexity, plus
+held-out sets for learning-signal, qg-prescreen and slop-score (PR3
+carry (a)) under `config/decisions/corpora/heldout/`.
+
+- Two labellers per corpus, blind to the heuristic's value and Jev's:
+  they see `prompt`, `prior` and `context` only. refine: Sara and
+  Carolina; forge-complexity: Paulo and Gabriel. No agent labels the
+  corpus of a site it wrote.
+- Agreement (Cohen's kappa): refine vague 1.00, refine gap 0.83,
+  forge-complexity tier 0.946. Below 0.6 a corpus cannot gate and the
+  site keeps its mode.
+- The operator arbitrated 5 cases with two rulings: a genre noun (the
+  kind of artefact asked for) is not a target (four refine cases); the
+  one disputed Forge case, `forge-complexity-29` ("Melhora o sistema"),
+  is STANDARD. That ruling covers that case only: vague requests of
+  total reach ("Faz tudo funcionar melhor", "Otimiza tudo") stay DEEP.
+  A case without consensus after arbitration leaves the corpus; no
+  label is forced. The arbitration is recorded in the spec, never in
+  the jsonl.
+- Finding: the forge-complexity corpus over-labelled STANDARD. It held
+  12 STANDARD cases of 32; the two labellers, applying the rubric, gave
+  3 and 4. PR2's baseline note ("all 32 cases in STANDARD, 37.5 %") was
+  measured against those labels.
+- `ReplayCase` gains `source` (`seed` for the PR1–PR3 corpora, the
+  labeller's batch for relabel cases) and `gap`, refine's missing piece,
+  scored against Jev's `missing` choice as a secondary measure; the
+  vague bool in `expected` stays the gate's label. Composition floor: at
+  least 30 cases (15 for a held-out set, reported on its own), at least
+  50 % pt-PT (target 55 %, so one English case more cannot drop a corpus
+  under the gate), at least half of the new cases handwritten.
+
+**Decision 9 — carries.**
+
+- Closed in PR5:
+  - #569: `transcript_scope.recent_user_messages` returned text the
+    harness writes with the user role (hand-backs, compaction
+    summaries, reminders, queued commands, peer relays) and fed it to
+    topic-drift and the Jev prompt state. Each record is now judged by
+    `operator_message`'s structural rules, shared with the Stop-hook
+    reader; an unreadable transcript gives no prior, never harness text.
+  - #570: the evidence engine returned `overall=pass` when the tests
+    check timed out. A command killed at its 300 s cap is now a failed
+    row (`ran=True`, `passed=False`, "timed out after N s"), so another
+    check's pass can no longer carry the overall.
+  - #573: slop-score read the whole file when the name was not tracked.
+    `prose_text` now applies the rule `qg_prescreen._untracked_diff`
+    already had: only exit 1 of the tracking probe means untracked. A
+    name not in git's own spelling (`x.md/`) is skipped as `path-class`.
+- Open: #571 (the destructive-tests guard fires when a live session
+  rewrites `.arka/workflow-state.json` during the suite; the release G3
+  runs with no live session in the project) and #572 (the gitleaks top
+  vendors in the secret vocabulary, and Stripe in the Quality Gate's
+  security-grep, `evidence_checks._SECURITY_PATTERNS`; the egress side
+  has refused Stripe keys since PR3. Defence in depth, since the
+  boundary is the path allowlist of Decision 2c).
+
+**Decision 11 — the Node fast-path stays (closes PR2 Decision 1).**
+Since PR2, `enforcement.jsonl` holds 12,039 Bash lines from the Node
+fast-path against 1,976 from the Python path, and bash-effect was asked
+7 times. Delegating would add 300–600 ms to about 86 % of Bash commands
+for a gain seen 7 times in two days. The fast-path stays. The Node lines
+carry no `bash_path` key; PR2 said they carried `""`.
+
+### Divergences between plan, spec and code
+
+- "22 sites": 17 are registered. 18–21 are parked (PR4) and #17
+  (redo-risk) is not a site: it is the prescreen envelope that
+  `core/evals/verdict_labels.py` copies into each QG label. PR5 reruns
+  the 17.
+- bash-effect ceiling: the plan said 600 ms; the code has 1000 ms
+  (`sites/command.py`), and `CLAUDE.md` matches the code.
+- `bash_path` on Node rows: the key is absent, not `""` (Decision 11;
+  PR2 text corrected).
+- route threshold: spec D3 prescribed `Site.min_confidence` with route
+  at 0.70. The round-1 delivery kept the 0.75 `write` threshold and
+  restated the docs without a ruling; Quality Gate round 1 caught it
+  (Francisca B1, Eduardo), and the operator ruled 0.70 on 2026-09-25 in
+  the round-2 redo. Delivered: `Site.min_confidence=0.70` on `ROUTE`
+  (`core/decisions/sites/prompt.py`); `threshold_for` reads the
+  operator's `sites.<name>.minConfidence`, then `Site.min_confidence`,
+  then config `thresholds[risk]`, then the table ("Modes and thresholds").
+  Replay, 2 runs, cache off: at 0.70 Jev 90.9 / 90.3 % vs heuristic
+  72.7 % overall (72.7 / 71.0 % on the answered cases), abstain 0.0 /
+  6.1 % (run 2: 2 unavailable calls), both pass; at 0.75, same session,
+  90.6 / 90.9 %, abstain 3.0 / 0.0 % (run 1: 1 unavailable call). The
+  corpus does not separate the two. On the shipped code
+  (`route-shipped-0.70-run{1,2}.json`): 90.9 % vs 72.7 %, abstain 0,
+  33/33 reached, both pass. Live telemetry: of 349 route calls, 44
+  abstained, 7 of them in [0.70, 0.75), all with the heuristic at `ops`
+  and Jev at `dev` in 6 (arka-os turns 2026-09-23T22:26Z to
+  2026-09-25T08:47Z). Evidence: `pr5/route-threshold/`
+  (`route-0.70-vs-0.75-2runs.json`, `live-band.txt`).
+- forge-complexity abstain: the plan blamed the corpus; the code read a
+  single cell (Decision 6).
+- ui-in-ts state class: the PR3 spec said `command`; the code uses
+  `diff` (PR3 Decision 2), and `CLAUDE.md` matches the code.
+- `ReplayCase.source` (Decision 7): the spec prescribed a fixed list
+  defaulting to `unit-test`; the code has a string defaulting to `seed`,
+  validated against `seed` and the labellers' `handwritten-*` batches.
+
+### PR4 parked
+
+The operator parked PR4 (sites 18–21) on 2026-09-25. The Dreaming
+scheduler has been stopped since 2026-09-04, the operator's machine
+holds 0 recipes, so recipe-rerank has no live population, and the
+reorganizer needs its own fixes (name prefix, frontmatter `category`,
+insights folder) before it can carry a site. Both specs (PR4a, PR4b)
+are in the vault with status `parked`.
+
+### Release 5.18.0
+
+The checklist is in the spec ("Release checklist 5.18.0"): preflight,
+version bump in the three files, marketplace and harness regeneration,
+CHANGELOG for the campaign, full suite in the foreground, GitHub
+release, `npm pack --dry-run` with the client-name grep. The
+`npm publish` step needs the operator's explicit GO; nothing in PR5
+authorises it.
 
 ## Consequences
 

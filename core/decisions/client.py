@@ -8,6 +8,13 @@
 ``http-422`` | ``http-429`` | ``http-529`` | ``http-<n>`` |
 ``invalid-json`` | ``invalid-shape`` | ``redirected``.
 
+A failure decided on this machine is raised with ``local=True``; the
+replay harness reads it through :meth:`DecisionUnavailable.run_reason` as
+``<reason>:local`` (``invalid-shape:local`` for a state or body that
+cannot be serialised, ``timeout:local`` for the wall-clock deadline) and
+never counts it as a call that reached the endpoint. Live telemetry keeps
+the bare ``reason`` above.
+
 401/429/529 also trip the shared circuit breaker (``backoff.py``);
 ``timeout``/``network`` count towards it (3 in a row trip it for 60 s)
 and a success clears the count.
@@ -50,13 +57,22 @@ BACKOFF_529_S = 120.0
 MAX_RETRY_AFTER_S = 3600.0
 
 
+# The ``:<cause>`` suffix of a reason decided locally (see run_reason).
+LOCAL_MARK = "local"
+
+
 class DecisionUnavailable(Exception):  # noqa: N818 — contract name from the ADR
     """No typed answer this time; the caller uses its heuristic."""
 
-    def __init__(self, reason: str, detail: str = "") -> None:
+    def __init__(self, reason: str, detail: str = "", *, local: bool = False) -> None:
         super().__init__(f"{reason}: {detail}" if detail else reason)
         self.reason = reason
         self.detail = detail
+        self.local = local
+
+    def run_reason(self) -> str:
+        """``reason``, suffixed ``:local`` when this machine decided it."""
+        return f"{self.reason}:{LOCAL_MARK}" if self.local else self.reason
 
 
 def post_decision(
@@ -67,7 +83,7 @@ def post_decision(
         payload = {**request.to_payload(), **transport.body_extras}
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     except (TypeError, ValueError) as exc:
-        raise DecisionUnavailable("invalid-shape", type(exc).__name__) from exc
+        raise DecisionUnavailable("invalid-shape", type(exc).__name__, local=True) from exc
     req = _request(transport, body)
     start = time.monotonic()
     try:
@@ -109,7 +125,7 @@ def _send_by_deadline(req: urllib.request.Request, timeout_s: float) -> bytes:
         # lock the dripping read holds, so it would block the caller for
         # the whole drip (measured: 11.7 s). The daemon thread ends with
         # the socket or the process; it holds bytes only.
-        raise DecisionUnavailable("timeout", "deadline")
+        raise DecisionUnavailable("timeout", "deadline", local=True)
     error = box.get("error")
     if isinstance(error, urllib.error.HTTPError):
         raise _map_http_error(error) from error

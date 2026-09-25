@@ -1,32 +1,102 @@
-{"id": "forge-complexity-01", "lang": "pt", "prompt": "Corrige a gralha no título do README", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-02", "lang": "en", "prompt": "Rename the constant MAX_RETRIES to RETRY_LIMIT in client.py", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-03", "lang": "pt", "prompt": "Muda a cor do botão principal para azul no ficheiro de tema", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-04", "lang": "en", "prompt": "Bump the lodash version in package.json", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-05", "lang": "pt", "prompt": "Acrescenta um comentário a explicar a tolerância de 0.05", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-06", "lang": "en", "prompt": "Fix the broken link in docs/install.md", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-07", "lang": "pt", "prompt": "Remove o import não usado em core/decisions/engine.py", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-08", "lang": "en", "prompt": "Update the copyright year in the footer component", "prior": [], "expected": "SHALLOW"}
-{"id": "forge-complexity-09", "lang": "pt", "prompt": "Adiciona o campo telefone ao formulário de contacto com validação e teste", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-10", "lang": "en", "prompt": "Add pagination to the orders API endpoint with tests", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-11", "lang": "pt", "prompt": "Implementa a exportação de relatórios em CSV no painel de administração", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-12", "lang": "en", "prompt": "Add a retry with exponential backoff to the webhook sender and cover it with tests", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-13", "lang": "pt", "prompt": "Cria uma página de definições com preferências de notificação", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-14", "lang": "en", "prompt": "Write a new CLI subcommand that lists stale specs", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-15", "lang": "pt", "prompt": "Integra o envio de emails transacionais com o fornecedor atual e testes", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-16", "lang": "en", "prompt": "Refactor the cache module to support TTL per key", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-17", "lang": "pt", "prompt": "Adiciona filtros por data e estado à listagem de encomendas", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-18", "lang": "en", "prompt": "Build a small dashboard widget showing today's LLM cost", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-19", "lang": "pt", "prompt": "Cria o endpoint de pesquisa de produtos com paginação", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-20", "lang": "en", "prompt": "Add dark mode to the settings page", "prior": [], "expected": "STANDARD"}
-{"id": "forge-complexity-21", "lang": "pt", "prompt": "Migra a autenticação de sessões para OAuth2 com SSO em todos os serviços, incluindo migração da base de dados", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-22", "lang": "en", "prompt": "Re-architect the billing system for multi-currency payments with a production data migration", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-23", "lang": "pt", "prompt": "Divide o monólito em microsserviços com filas de eventos e deploy independente", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-24", "lang": "en", "prompt": "Replace the workflow engine with a new event-sourced core across every department", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-25", "lang": "pt", "prompt": "Implementa encriptação ponta a ponta das mensagens com rotação de chaves e auditoria de segurança", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-26", "lang": "en", "prompt": "Move the whole infrastructure to Kubernetes with zero-downtime deploys and secrets management", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-27", "lang": "pt", "prompt": "Reescreve o motor de permissões com RBAC por organização e migração dos dados de produção", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-28", "lang": "en", "prompt": "Build multi-tenant isolation into the database schema and every API", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-29", "lang": "pt", "prompt": "Melhora o sistema", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-30", "lang": "en", "prompt": "Make everything better and faster", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-31", "lang": "pt", "prompt": "Cria uma plataforma nova de pagamentos com faturação, subscrições e conformidade PCI", "prior": [], "expected": "DEEP"}
-{"id": "forge-complexity-32", "lang": "en", "prompt": "Introduce a plugin system with a public API contract and a migration path for existing integrations", "prior": [], "expected": "DEEP"}
+{"id": "forge-complexity-01", "lang": "pt", "prompt": "Corrige a gralha no título do README", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-02", "lang": "en", "prompt": "Rename the constant MAX_RETRIES to RETRY_LIMIT in client.py", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-03", "lang": "pt", "prompt": "Muda a cor do botão principal para azul no ficheiro de tema", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-04", "lang": "en", "prompt": "Bump the lodash version in package.json", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-05", "lang": "pt", "prompt": "Acrescenta um comentário a explicar a tolerância de 0.05", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-06", "lang": "en", "prompt": "Fix the broken link in docs/install.md", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-07", "lang": "pt", "prompt": "Remove o import não usado em core/decisions/engine.py", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-08", "lang": "en", "prompt": "Update the copyright year in the footer component", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-09", "lang": "pt", "prompt": "Adiciona o campo telefone ao formulário de contacto com validação e teste", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-10", "lang": "en", "prompt": "Add pagination to the orders API endpoint with tests", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-11", "lang": "pt", "prompt": "Implementa a exportação de relatórios em CSV no painel de administração", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-12", "lang": "en", "prompt": "Add a retry with exponential backoff to the webhook sender and cover it with tests", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-13", "lang": "pt", "prompt": "Cria uma página de definições com preferências de notificação", "expected": "STANDARD", "source": "seed"}
+{"id": "forge-complexity-14", "lang": "en", "prompt": "Write a new CLI subcommand that lists stale specs", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-15", "lang": "pt", "prompt": "Integra o envio de emails transacionais com o fornecedor atual e testes", "expected": "STANDARD", "source": "seed"}
+{"id": "forge-complexity-16", "lang": "en", "prompt": "Refactor the cache module to support TTL per key", "expected": "STANDARD", "source": "seed"}
+{"id": "forge-complexity-17", "lang": "pt", "prompt": "Adiciona filtros por data e estado à listagem de encomendas", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-18", "lang": "en", "prompt": "Build a small dashboard widget showing today's LLM cost", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-19", "lang": "pt", "prompt": "Cria o endpoint de pesquisa de produtos com paginação", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-20", "lang": "en", "prompt": "Add dark mode to the settings page", "expected": "SHALLOW", "source": "seed"}
+{"id": "forge-complexity-21", "lang": "pt", "prompt": "Migra a autenticação de sessões para OAuth2 com SSO em todos os serviços, incluindo migração da base de dados", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-22", "lang": "en", "prompt": "Re-architect the billing system for multi-currency payments with a production data migration", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-23", "lang": "pt", "prompt": "Divide o monólito em microsserviços com filas de eventos e deploy independente", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-24", "lang": "en", "prompt": "Replace the workflow engine with a new event-sourced core across every department", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-25", "lang": "pt", "prompt": "Implementa encriptação ponta a ponta das mensagens com rotação de chaves e auditoria de segurança", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-26", "lang": "en", "prompt": "Move the whole infrastructure to Kubernetes with zero-downtime deploys and secrets management", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-27", "lang": "pt", "prompt": "Reescreve o motor de permissões com RBAC por organização e migração dos dados de produção", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-28", "lang": "en", "prompt": "Build multi-tenant isolation into the database schema and every API", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-29", "lang": "pt", "prompt": "Melhora o sistema", "expected": "STANDARD", "source": "seed"}
+{"id": "forge-complexity-30", "lang": "en", "prompt": "Make everything better and faster", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-31", "lang": "pt", "prompt": "Cria uma plataforma nova de pagamentos com faturação, subscrições e conformidade PCI", "expected": "DEEP", "source": "seed"}
+{"id": "forge-complexity-32", "lang": "en", "prompt": "Introduce a plugin system with a public API contract and a migration path for existing integrations", "expected": "DEEP", "source": "seed"}
+{"id": "fc-A-01", "lang": "pt", "prompt": "Corrige o acento em 'Configuracoes' no menu lateral", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-02", "lang": "pt", "prompt": "Atualiza o email de suporte no rodapé do site", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-03", "lang": "pt", "prompt": "Aumenta o timeout do cliente HTTP de 10 para 30 segundos no ficheiro de configuração", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-04", "lang": "pt", "prompt": "Adiciona a variável APP_LOCALE ao .env.example", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-05", "lang": "pt", "prompt": "Traduz para português as mensagens de erro do formulário de registo", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-06", "lang": "pt", "prompt": "Apaga o ficheiro de script antigo scripts/legacy_import.sh que já ninguém usa", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-07", "lang": "en", "prompt": "Fix the misspelled 'recieve' in the onboarding email template", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-08", "lang": "en", "prompt": "Add alt text to the hero image on the homepage", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-09", "lang": "en", "prompt": "Pin the Node version to 20 in .nvmrc", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-10", "lang": "en", "prompt": "Rename the Slack channel reference in the incident runbook", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-11", "lang": "pt", "prompt": "Adiciona um campo NIF opcional ao perfil do cliente com validação do dígito de controlo e testes", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-12", "lang": "pt", "prompt": "Implementa o reenvio automático de faturas por email quando o pagamento falha, com testes", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-13", "lang": "pt", "prompt": "Cria uma página de FAQ no site com pesquisa e categorias geridas no CMS", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-14", "lang": "pt", "prompt": "Adiciona exportação para PDF das propostas comerciais", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-15", "lang": "pt", "prompt": "Refatora o serviço de notificações para usar filas em vez de envio síncrono", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-16", "lang": "pt", "prompt": "Adiciona limitação de pedidos de 60 por minuto aos endpoints públicos da API, com resposta 429 e testes", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-17", "lang": "pt", "prompt": "Cria um widget no dashboard com as vendas diárias por canal", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-18", "lang": "pt", "prompt": "Integra o Google Analytics 4 no site com consentimento de cookies", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-19", "lang": "pt", "prompt": "Adiciona upload de avatar ao perfil do utilizador com redimensionamento e limite de 2 MB", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-20", "lang": "pt", "prompt": "Escreve os testes em falta para o módulo de descontos até chegar a 80% de cobertura", "expected": "SHALLOW", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-21", "lang": "en", "prompt": "Add a soft-delete flag to products and hide deleted ones from the storefront", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-22", "lang": "en", "prompt": "Implement password reset via emailed one-time link with a 30-minute expiry and tests", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-23", "lang": "en", "prompt": "Add CSV import for contacts with duplicate detection by email", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-24", "lang": "en", "prompt": "Add OpenTelemetry tracing to the checkout service", "expected": "STANDARD", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-25", "lang": "pt", "prompt": "Migra a base de dados de MySQL para PostgreSQL em produção sem perder dados", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-26", "lang": "pt", "prompt": "Implementa faturação multi-país com IVA por país, notas de crédito e integração com o software de contabilidade", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-27", "lang": "pt", "prompt": "Substitui o sistema de filas atual por um bus de eventos partilhado por todos os serviços", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-28", "lang": "pt", "prompt": "Cria uma app móvel nativa para iOS e Android com login, notificações push e pagamentos", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-29", "lang": "pt", "prompt": "Adiciona conformidade RGPD completa: exportação e eliminação de dados pessoais em todos os serviços e registo de consentimentos", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-30", "lang": "pt", "prompt": "Reestrutura o monorepo em pacotes independentes com versionamento próprio e pipeline de publicação", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-31", "lang": "pt", "prompt": "Implementa SSO SAML para clientes empresariais com provisionamento automático de utilizadores", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-32", "lang": "pt", "prompt": "Faz tudo funcionar melhor", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-33", "lang": "en", "prompt": "Rotate all production secrets and move them to a managed vault with automatic rotation", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-34", "lang": "en", "prompt": "Rebuild the search stack on a vector database with hybrid ranking across all content types", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-35", "lang": "en", "prompt": "Launch the product in three new markets: localisation, local payment methods, pricing and a marketing campaign", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "fc-A-36", "lang": "en", "prompt": "Improve the platform", "expected": "DEEP", "source": "handwritten-2026-09-25-A"}
+{"id": "forge-complexity-B-pt-01", "lang": "pt", "prompt": "Corrige a acentuação na mensagem de erro do formulário de checkout", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-02", "lang": "pt", "prompt": "Atualiza o número de telefone de apoio no rodapé do site", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-03", "lang": "pt", "prompt": "Muda o assunto do email de recuperação de carrinho para 'Esqueceu-se de algo?'", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-04", "lang": "pt", "prompt": "Acrescenta a variável de ambiente LOG_LEVEL ao ficheiro .env.example", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-05", "lang": "pt", "prompt": "Cria um SOP de uma página para o processo de devoluções da loja", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-06", "lang": "pt", "prompt": "Adiciona um campo 'código postal' ao formulário de encomenda com validação do formato português e teste", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-07", "lang": "pt", "prompt": "Implementa o envio de uma notificação no Slack quando um cliente cancela a subscrição", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-08", "lang": "pt", "prompt": "Cria um relatório semanal de MRR e churn que é enviado por email à equipa de finanças", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-09", "lang": "pt", "prompt": "Adiciona cupões de desconto percentuais ao checkout, com data de validade e limite de utilizações", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-10", "lang": "pt", "prompt": "Monta um calendário editorial de 4 semanas para Instagram e TikTok com base nos pilares de conteúdo atuais", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-11", "lang": "pt", "prompt": "Cria uma landing page para o webinar com formulário de inscrição ligado ao CRM e sequência de 3 emails de lembrete", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-12", "lang": "pt", "prompt": "Integra o CRM com o formulário de contacto do site para criar leads automaticamente", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-13", "lang": "pt", "prompt": "Adiciona testes de integração ao serviço de faturação sem alterar o comportamento", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-14", "lang": "pt", "prompt": "Implementa a sincronização de stock entre a loja online e o marketplace, de hora a hora, com tratamento de conflitos", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-15", "lang": "pt", "prompt": "Cria um programa de afiliados com links de tracking, comissões de 20% e painel para os afiliados", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-16", "lang": "pt", "prompt": "Reestrutura o funil de vendas inteiro: nova landing, nova oferta, sequência de emails e scripts de chamada para a equipa comercial", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-17", "lang": "pt", "prompt": "Migra a loja de WooCommerce para Shopify mantendo URLs, clientes, encomendas históricas e SEO", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-18", "lang": "pt", "prompt": "Implementa faturação por uso no SaaS, com medição de eventos, limites por plano e cobrança mensal automática", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-19", "lang": "pt", "prompt": "Substitui o sistema de login por passwordless com links mágicos em todas as apps, incluindo migração das contas existentes", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-20", "lang": "pt", "prompt": "Implementa conformidade RGPD em toda a plataforma: exportação e eliminação de dados, registo de consentimentos e auditoria", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-21", "lang": "pt", "prompt": "Otimiza tudo", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-22", "lang": "pt", "prompt": "Faz a loja vender mais", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-pt-23", "lang": "pt", "prompt": "Cria uma comunidade paga no Discord integrada com as subscrições do SaaS, com cargos automáticos por plano e remoção quando a subscrição expira", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-01", "lang": "en", "prompt": "Fix the typo 'recieve' in the onboarding email template", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-02", "lang": "en", "prompt": "Change the default page size of the products API from 20 to 50", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-03", "lang": "en", "prompt": "Add an 'export to PDF' button to the invoice detail page with a feature test", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-04", "lang": "en", "prompt": "Add a churn-risk flag to the customer list based on 30 days without login", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-05", "lang": "en", "prompt": "Write a lead-scoring rule set in the CRM for inbound demo requests", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-06", "lang": "en", "prompt": "Build a referral program with unique codes, double-sided rewards and fraud checks", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-07", "lang": "en", "prompt": "Replace the email provider across all transactional and marketing flows without downtime", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-08", "lang": "en", "prompt": "Rebuild the mobile app in React Native and retire the two native codebases", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-09", "lang": "en", "prompt": "Add SSO with SAML for enterprise customers, including per-organisation configuration and audit logs", "expected": "DEEP", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-10", "lang": "en", "prompt": "Make the onboarding better", "expected": "STANDARD", "source": "handwritten-2026-09-25-B"}
+{"id": "forge-complexity-B-en-11", "lang": "en", "prompt": "Sort the team list alphabetically in the admin sidebar", "expected": "SHALLOW", "source": "handwritten-2026-09-25-B"}

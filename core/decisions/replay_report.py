@@ -43,6 +43,7 @@ from core.decisions.config import (
     DecisionsConfig,
     Mode,
     bypassed,
+    configured_mode,
     load_decisions_config,
 )
 from core.decisions.promotion import ModeProposal, RunGate, RunVerdict, propose_mode
@@ -130,9 +131,8 @@ def no_cache_config(cfg: DecisionsConfig) -> DecisionsConfig:
 
 
 def effective_mode(cfg: DecisionsConfig, site: str) -> Mode:
-    """The operator's override when present, else the site default (bypass ignored)."""
-    override = cfg.sites.get(site)
-    return override.mode if override is not None else SITES[site].default_mode
+    """The operator's override when it sets a mode, else the site default (bypass ignored)."""
+    return configured_mode(cfg, SITES[site])
 
 
 def measure(report: ReplayReport) -> tuple[RunGate, str]:
@@ -246,6 +246,20 @@ def _pct_raw(value: float | None) -> str:
     return "—" if value is None else f"{value:.1f}%"
 
 
+def _secondary_lines(results: Sequence[SiteResult]) -> list[str]:
+    """Per-run scores outside the gate: D6's two readings, refine's gap choice."""
+    rows = [f"| `{res.site}` | {run.run} | {_pct(run.report.abstain_rate)} | "
+            f"{_pct(run.report.single_cell_abstain_rate)} | {_pct(run.report.gap_accuracy)} |"
+            for res in results for run in res.runs
+            if run.report.single_cell_abstain_rate is not None
+            or run.report.gap_accuracy is not None]
+    if not rows:
+        return []
+    return ["", "## Secondary scores (never part of the gate)", "",
+            "| Site | Run | Abstain (site reading) | Abstain (single-cell, pre-D6) | "
+            "Missing choice vs gap |", "|---|---|---|---|---|", *rows]
+
+
 def render_report(results: Sequence[SiteResult], meta: dict[str, Any]) -> str:
     """REPORT.md: runs, proposals, then the informational live column."""
     lines = [
@@ -261,6 +275,7 @@ def render_report(results: Sequence[SiteResult], meta: dict[str, Any]) -> str:
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     lines += [_run_row(res, run) for res in results for run in res.runs]
+    lines += _secondary_lines(results)
     lines += ["", "## Proposals (rule D2; the PR applies them to `default_mode`)", "",
               "| Site | Mode (default) | Proposal | Why | Corpus sha256 |", "|---|---|---|---|---|"]
     lines += [_proposal_row(res) for res in results]
