@@ -1201,12 +1201,34 @@ the second proved by mutation (it fails with the old read).
 - Process defect found in round 7, carried to its own issue: the
   SubagentStop capture stored the reviewers' trailing prose without the
   `arka-qgverdict` fence, so `eduardo-copy-21` and `francisca-tech-23`
-  entered the ledger with verdict `None`. Until they were re-issued as
-  `eduardo-copy-22` and `francisca-tech-24`, the guard read the round-6
-  blockers. Round 8 hit it again with prose written after the handback
-  (`eduardo-copy-23` and `francisca-tech-25`, re-issued as
+  entered the ledger with verdict `None`. Until they were re-dispatched
+  as `eduardo-copy-22` and `francisca-tech-24`, the guard read the
+  round-6 blockers. Round 8 hit it again with prose written after the
+  handback (`eduardo-copy-23` and `francisca-tech-25`, re-dispatched as
   `eduardo-copy-24` and `francisca-tech-26`), so the carried issue must
-  cover the post-handback case too.
+  cover the post-handback case too. Fixed (issue #568): when the
+  captured reply carries no verdict fence, the ledger recovers the last
+  message that carries one from the reviewer's own transcript (an
+  assistant text block or the `SubagentHandback` input), reading back
+  only to the prompt that opened the current turn, so a resumed
+  reviewer never inherits its previous round's fence. A reply that is
+  only the handback tool call is handed on to that recovery instead of
+  being dropped. The ledger files the recovered message, notes where
+  it came from in `fence_source`, and records a capture with no fence
+  anywhere under `capture_error: "no-fence"`. The aggregate guard
+  treats such a reviewer as missing instead of reading an older round,
+  and it does the same when the reviewer's latest capture holds a
+  broken fence (`parse_error`). An `arka-qgverdict` opener that never
+  closes is a broken fence too: the ledger records `parse_error:
+  "unterminated arka-qgverdict fence"`, whether the text came from the
+  last message or from the transcript, so a reply cut mid-verdict is
+  missing rather than skipped. Dedup compares a capture only with the
+  reviewer's latest record: a verdict re-sent verbatim after a
+  fenceless capture is filed as a new record and supersedes it; the old
+  rule, matching any earlier copy, left the fenceless record latest and
+  refused the reviewer for good. The carry advisor lists a reviewer
+  whose latest capture has no fence or a broken fence for re-dispatch
+  rather than carrying an older digest.
 
 ## Consequences
 

@@ -154,3 +154,42 @@ class TestCli:
         assert {c["reviewer"] for c in payload["carries"]} == {
             "eduardo-copy"
         }
+
+
+def test_fenceless_latest_capture_is_re_dispatched_not_carried(advisor_home):
+    """Issue #568: an older round's digest is never carried for a
+    reviewer whose latest capture filed no verdict."""
+    _quorum("sess-568c")
+    session_dir = ledger_root() / "sess-568c"
+    (session_dir / "eduardo-copy-3-11111111.json").write_text(json.dumps({
+        "session_id": "sess-568c", "reviewer_id": "eduardo-copy", "seq": 3,
+        "ts": "2026-08-09T00:09:00+00:00", "source": "subagent-stop",
+        "parse_error": None, "verdict": None, "raw_output": "prose",
+        "fence_source": None, "capture_error": "no-fence",
+    }), encoding="utf-8")
+    result = carry_candidates("sess-568c", ["docs/a.md"])
+    assert [c["reviewer"] for c in result["carries"]] == ["francisca-tech"]
+    assert result["re_dispatch"][0]["reviewer"] == "eduardo-copy"
+    assert result["re_dispatch"][0]["why"] == (
+        "latest capture carries no verdict (no-fence); re-dispatch"
+    )
+
+
+def test_broken_fence_latest_capture_is_re_dispatched(advisor_home):
+    """QG round 1, M2: a latest capture with parse_error is re-dispatched,
+    never answered with the older round's digest."""
+    _quorum("sess-568pe")
+    session_dir = ledger_root() / "sess-568pe"
+    (session_dir / "eduardo-copy-3-22222222.json").write_text(json.dumps({
+        "session_id": "sess-568pe", "reviewer_id": "eduardo-copy", "seq": 3,
+        "ts": "2026-08-09T00:09:00+00:00", "source": "subagent-stop",
+        "parse_error": "json: Expecting value", "verdict": None,
+        "raw_output": "```arka-qgverdict\n{bad\n```", "fence_source": "last_message",
+        "capture_error": None,
+    }), encoding="utf-8")
+    result = carry_candidates("sess-568pe", ["docs/a.md"])
+    assert [c["reviewer"] for c in result["carries"]] == ["francisca-tech"]
+    assert result["re_dispatch"] == [{
+        "reviewer": "eduardo-copy",
+        "why": "latest capture carries no verdict (parse_error); re-dispatch",
+    }]
